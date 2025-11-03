@@ -1,0 +1,254 @@
+using Simpolo_Endpoint.DAO.interfaces;
+using Simpolo_Endpoint.DAO.Services;
+using Simpolo_Endpoint.ModelsLibrary;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.HttpsPolicy;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.OpenApi.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using Swashbuckle.AspNetCore.Filters;
+using Swashbuckle.AspNetCore.SwaggerGen;
+using Microsoft.Extensions.Options;
+using System.Configuration;
+using Microsoft.AspNetCore.Http;
+
+namespace Simpolo_Endpoint
+{
+    public class Startup
+    {
+        public Startup(IConfiguration configuration)
+        {
+            Configuration = configuration;
+        }
+        public IConfiguration Configuration { get; }
+
+        // This method gets called by the runtime. Use this method to add services to the container.
+        public void ConfigureServices(IServiceCollection services)
+        {
+
+            services.AddControllers();
+            services.AddHttpContextAccessor();
+            //services.AddCors();
+
+            services.AddCors(options =>
+            {
+                options.AddPolicy("AllowSpecificOrigin",
+                    builder =>
+                    {
+                        //builder.WithOrigins("http://haleonfalconwmstest.cropnet4.net", "http://haleonfalconwmstest.cropnet4.net:8089", "http://10.22.8.129:8089", "http://localhost:8089")
+                        //var allowedOrigins = Configuration.GetSection("AppSettings:AllowedOrigins").Get<string[]>();
+                        builder.WithOrigins("http://haleonfalconwmstest.corpnet4.net", "https://gskreact.inventrax.com:8089", "http://haleonfalconwmstest.corpnet4.net:8089", "http://10.22.8.129:8089", "http://localhost:8089", "https://haleonfalconwmstest.corpnet4.net", "https://haleonfalconwmstest.corpnet4.net:8080", "http://localhost:3000", "http://localhost:13401")
+                               .AllowAnyHeader()
+                               .AllowAnyMethod();
+                    });
+            });
+
+            var appSettingsSection = Configuration.GetSection("AppSettings");
+            string validIssuer = Configuration["AppSettings:ValidIssuer"];
+            string validAudience = Configuration["AppSettings:ValidAudience"];
+            string issuerSigningKey = Configuration["AppSettings:IssuerSigningKey"];
+
+            services.Configure<AppSettings>(appSettingsSection);
+            services.AddSingleton<IAccount, AccountService>();
+            services.AddSingleton<ICommon, CommonService>();
+            services.AddSingleton<IMasterData, MasterDataservice>();
+            services.AddSingleton<ILogin, LoginService>();
+            services.AddSingleton<IItemMasterData, ItemMasterService>();
+            services.AddSingleton<IPOSO, POSOService>();
+            services.AddSingleton<IAdministration, AdministrationService>();
+            services.AddSingleton<IHouseKeeping, HouseKeepingService>();
+            services.AddSingleton<IOrders, OrdersService>();
+            services.AddSingleton<IInbound, InboundService>();
+            services.AddSingleton<IOutbound, OutboundService>();
+            services.AddSingleton<IInventory, InventoryServices>();
+            services.AddSingleton<IReports, ReportsService>();
+            services.AddSingleton<Simpolo_Endpoint.DAO.HHTInterface.IInbound, Simpolo_Endpoint.DAO.HHTServices.InboundService>();
+            services.AddSingleton<Simpolo_Endpoint.DAO.HHTInterface.IOutbound, Simpolo_Endpoint.DAO.HHTServices.OutboundService>();
+            services.AddSingleton<Simpolo_Endpoint.DAO.HHTInterface.ICycleCount, Simpolo_Endpoint.DAO.HHTServices.CycleCountService>();
+            services.AddSingleton<Simpolo_Endpoint.DAO.HHTInterface.IScan, Simpolo_Endpoint.DAO.HHTServices.ScanService>();
+            services.AddSingleton<Simpolo_Endpoint.DAO.HHTInterface.IHouseKeeping, Simpolo_Endpoint.DAO.HHTServices.HouseKeepingService>();
+            services.AddSingleton<Simpolo_Endpoint.DAO.HHTInterface.IInternalTransfer, Simpolo_Endpoint.DAO.HHTServices.InternalTransferService>();
+            services.AddSingleton<Simpolo_Endpoint.DAO.HHTInterface.iException, Simpolo_Endpoint.DAO.HHTServices.ExceptionService>();
+            services.AddSingleton<IShipperIDIntegration, ShipperIDIntegrationService>();
+            services.Configure<FileStorage>(Configuration.GetSection("FileStorage"));
+            services.AddScoped(sp => sp.GetRequiredService<IOptions<FileStorage>>().Value);
+
+
+            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidIssuer = validIssuer,
+                    ValidAudience = validAudience,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(issuerSigningKey))
+                };
+            });
+
+
+            services.AddSwaggerGen(c =>
+            {
+                var securitySchema = new OpenApiSecurityScheme
+                {
+                    Description = @"Authorization header using bearer schema.  Please enter your token",
+                    Name = "Authorization",
+                    In = ParameterLocation.Header,
+                    Type = SecuritySchemeType.Http,
+                    Scheme = "bearer",
+                    Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
+                };
+                c.AddSecurityDefinition("Bearer", securitySchema);
+                var securityRequirement = new OpenApiSecurityRequirement();
+                securityRequirement.Add(securitySchema, new[] { "Bearer" });
+                c.AddSecurityRequirement(securityRequirement);
+
+                c.OperationFilter<DAO.Services.SecurityRequirementsOperationFilter>();
+                c.SwaggerDoc("v1", new OpenApiInfo { Title = "Simpolo_Endpoint", Version = "v1" });
+
+            });
+        }
+
+
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        {
+            //app.Use(async (context, next) =>
+            //{
+            //    context.Response.Headers.Remove("Server");
+            //    await next.Invoke();
+            //});
+
+            //app.Use(async (context, next) =>
+            //{
+            //    context.Response.Headers.Remove("X-Powered-By");
+            //    await next.Invoke();
+            //});
+
+            //app.Use(async (context, next) =>
+            //{
+            //    context.Response.Headers.Remove("Server");
+            //    context.Response.Headers.Remove("X-Powered-By");
+            //    await next();
+            //});
+
+
+            if (env.IsDevelopment())
+            {
+                app.UseDeveloperExceptionPage();
+                app.UseSwagger();
+                app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Simpolo_Endpoint v1"));
+
+
+                //app.UseMiddleware<HeaderRemovalMiddleware>();
+                //app.UseHsts();
+            }
+
+            //var AllowedOrigins = Configuration.GetSection("AppSettings:AllowedOrigins").Get<string[]>();
+
+            //app.UseCors(x => x
+            //             .WithOrigins(AllowedOrigins)
+            //             .AllowAnyMethod()
+            //             .AllowAnyHeader());
+
+            //app.UseCors(builder =>
+            //{
+            //    builder.WithOrigins(AllowedOrigins)
+            //           .AllowAnyHeader()
+            //           .AllowAnyMethod();
+            //});
+
+            app.UseCors("AllowSpecificOrigins");
+
+            app.UseCors(x => x
+                         .WithOrigins("http://haleonfalconwmstest.corpnet4.net", "https://gskreact.inventrax.com:8089", "http://haleonfalconwmstest.corpnet4.net:8089", "http://10.22.8.129:8089", "http://localhost:8089", "https://haleonfalconwmstest.corpnet4.net", "https://haleonfalconwmstest.corpnet4.net:8080", "http://localhost:3000", "http://localhost:13401")
+                         .AllowAnyMethod()
+                         .AllowAnyHeader());
+
+
+
+            //app.UseHttpsRedirection();
+
+            app.UseRouting();
+            app.UseAuthentication();
+            app.UseAuthorization();
+
+            //if (env.IsDevelopment())
+            //{
+            //    app.UseDeveloperExceptionPage();
+            //}
+            //else
+            //{
+            //    app.UseExceptionHandler("/Home/Error");
+            //    app.UseHsts();
+            //}
+
+            app.UseEndpoints(endpoints =>
+            {
+                //endpoints.MapGet("/", async context =>
+                //{
+                //    await context.Response.WriteAsync("Hello, ASP.NET Core!");
+                //});
+
+                endpoints.MapControllers();
+            });
+
+
+
+            app.Use(async (context, next) =>
+            {
+                // Add security-related headers
+                context.Response.Headers.Add("X-Xss-Protection", "1; mode=block");
+                context.Response.Headers.Add("Content-Security-Policy", "default-src 'self'; script-src 'self' http://192.168.1.20:8089/");
+                context.Response.Headers.Add("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
+                context.Response.Headers.Add("Referrer-Policy", "no-referrer-when-downgrade");
+                //context.Response.Headers.Add("Server", " ");
+                context.Response.Headers.Add("X-Content-Type-Options", "nosniff");
+                context.Response.Headers.Add("X-Frame-Options", "SAMEORIGIN");
+                context.Response.Headers.Add("Cache-Control", "no-cache, no-store, must-revalidate");
+                context.Response.Headers.Add("Pragma", "no-cache");
+                context.Response.Headers.Add("Expires", "0");
+                context.Response.Headers.Remove("Server");
+                context.Response.Headers.Remove("X-Powered-By");
+                await next();
+            });
+        }
+    }
+
+
+    //public class RemoveHeadersFilter : IOperationFilter
+    //{
+    //    public void Apply(OpenApiOperation operation, OperationFilterContext context)
+    //    {
+    //        // List of headers you want to remove
+    //        var headersToRemove = new[] { "Access-Control-Allow-Origin", "Server" };
+
+    //        // Remove the specified headers from the operation's response
+    //        foreach (var headerName in headersToRemove)
+    //        {
+    //            if (operation.Responses != null)
+    //            {
+    //                foreach (var response in operation.Responses)
+    //                {
+    //                    if (response.Value.Headers.ContainsKey(headerName))
+    //                    {
+    //                        response.Value.Headers.Remove(headerName);
+    //                    }
+    //                }
+    //            }
+    //        }
+    //    }
+    //}
+}

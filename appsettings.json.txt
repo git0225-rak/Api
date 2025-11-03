@@ -1,0 +1,45 @@
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft": "Warning",
+      "Microsoft.Hosting.Lifetime": "Information"
+    }
+  },
+  "AllowedHosts": "*",
+  "AppSettings": {
+   "ConnectionString": "data source=192.168.1.243;initial catalog=FWMSC21_GMMCO;user id=GMMCO_Tempuser;password=Naac@1234;persist security info=True;packet size=4096;Encrypt=False",
+    //"APIURL": "https://haleonfalconwmstest.corpnet4.net:8090",
+    //"APIURL": "http://192.168.1.243/FWMSC21_GSK_API",
+    //"APIURL": "https://gskreact.inventrax.com:8089",
+    "APIURL": "http://192.168.1.116:13401",
+    //"APIURL": "https://api.inventrax.com:8090",
+    "QADSoap": "http://UKSWNUMFG0001.ad.corpnet4.net:8080/qxi/services/QdocWebService",
+    //"QADSoap": "http://UK1SAWN02272:8080/qxi/services/QdocWebService",
+    "wsaTo": "urn:services-qad-com:TRNG_QAD2014SE",
+    "wsaMessageId": "urn:services-qad-com::TRNG_QAD2014SE",
+    "validIssuer": "hdfkjshdeieuieuiewuiuwiuidijsdjaiwi",
+    "validAudience": "jaehduwehoiwdewjhdkewhouhyouhehefhourhf",
+    "issuerSigningKey": "fUD9ytHI19zvQkOlpqWl8nxqrZYCrYix7X8EyNKpol5KwsDkSvtRUSwxtr1K3GNuhSOT3OnS65P6J7YlXFnmPOK7yWGjBuTC72Nk",
+    //"FolderPath": "\\\\192.168.1.90\\Share_INV1\\GSKFiles",
+    //"FolderPath": "E:\\GSK_Endpoint_Images"
+    //"FolderPath": "\\192.168.1.20\GSK_Endpoint_Images"
+    "FolderPath": "\\\\192.168.1.20\\GSK_Endpoint_Images\\",
+    "AllowedOrigins": [
+      "http://haleonfalconwmstest.corpnet4.net",
+      "https://gskreact.inventrax.com:8089",
+      "http://haleonfalconwmstest.corpnet4.net:8089",
+      "http://10.22.8.129:8089",
+      "http://localhost:8089",
+      "https://haleonfalconwmstest.corpnet4.net",
+      "https://haleonfalconwmstest.corpnet4.net:8080",
+      "http://localhost:3000/",
+      "http://localhost:13401"
+    ]
+  },
+  "FileStorage": {
+    //"FolderPath": "E:\\GSKFiles"
+    "FolderPath": "\\192.168.1.20\\GSK_Endpoint_Images"
+  }
+
+}

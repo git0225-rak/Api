@@ -1,0 +1,50 @@
+trigger:
+- Stage
+
+pool:
+  name: WinAgentPool
+  demands:
+    - agent.name -equals 245JenkinsAgent2
+
+variables:
+  dotNetVersion: '8.0.x'
+  buildConfiguration: 'Release'
+
+stages:
+- stage: Build_n_Publish
+  displayName: 'Build Test and Publish Artifacts'
+  jobs:
+  - job: Build_Test_and_Publish
+    displayName: 'Build, Run Tests, and Publish Artifacts'
+    steps:
+    - task: UseDotNet@2
+      inputs:
+        version: $(dotNetVersion)
+
+    - script: |
+        dotnet build --configuration $(buildConfiguration)
+      displayName: 'Build'
+
+    - script: |
+        dotnet test --no-build --verbosity normal
+      displayName: 'Run Tests'
+
+    - script: |
+        dotnet publish --configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)
+      displayName: 'Publish Artifacts'
+    
+    - task: PowerShell@2
+      displayName: AppSettingsCopy
+      inputs:
+        targetType: 'inline'
+        script: |
+          Write-Host "Copying AppSettings to Artifact Staging Directory"
+          Copy-Item -Path "D:\Shared_Code\FWMSC24_Simpolo\Stage\Endpoint\*" -Destination "$(Pipeline.Workspace)\a\"
+
+
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish Artifact'
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+        ArtifactName: 'SimpoloStage_Endpoint_Artifact_V_$(build.buildID)'
+        publishLocation: 'Container'
